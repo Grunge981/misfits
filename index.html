@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>msfts.love</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Press Start 2P', 'VT323', monospace, sans-serif;
+      background: #181818;
+      color: #e94560;
+      width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      min-width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #101015 80%, #2a003f 100%);
+      position: relative;
+      background-image:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.04) 0px,
+          rgba(255,255,255,0.04) 1px,
+          transparent 1px,
+          transparent 4px
+        );
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 100vw;
+      min-height: 100vh;
+      z-index: 1;
+    }
+    .tetris-board-wrapper {
+      background: linear-gradient(135deg, #1a1a1a 70%, #232323 100%);
+      box-shadow: 0 0 40px #e9456080, 0 0 2px #444;
+      border: 2px solid #e94560;
+      border-radius: 16px;
+      padding: 14px 16px 18px 16px;
+      position: relative;
+      margin-bottom: 18px;
+      margin-top: 8px;
+      width: min(98vw, 420px);
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas#tetris {
+      background: #171717;
+      border: 2px solid #f4b41a;
+      box-shadow: 0 0 16px #e9456080;
+      display: block;
+      margin: 0 auto;
+    }
+    .canvas-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(24,24,24,0.64);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border-radius: 16px;
+      pointer-events: auto;
+      transition: background 0.3s;
+    }
+    .canvas-overlay.hidden {
+      display: none;
+    }
+    .play-big-btn {
+      font-family: inherit;
+      font-size: 2.1rem;
+      padding: 24px 54px;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 0 32px #e94560b0, 0 0 9px #f4b41a70;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 16px #f4b41a80;
+      transition: background 0.2s, color 0.2s;
+      outline: none;
+      user-select: none;
+      opacity: 0.96;
+      margin-top: 12px;
+    }
+    .play-big-btn:hover, .play-big-btn:focus {
+      background: #f4b41a;
+      color: #e94560;
+    }
+    .msft-counter {
+      color: #e94560;
+      font-size: 1.1rem;
+      text-align: center;
+      margin: 8px 0 0 0;
+      font-family: 'Press Start 2P', 'VT323', monospace;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 8px #f4b41a60;
+      user-select: none;
+    }
+    .controls {
+      margin-top: 12px;
+      color: #e94560;
+      font-size: 0.95rem;
+      text-align: center;
+      letter-spacing: 0.08em;
+      opacity: 0.85;
+      user-select: none;
+    }
+    .msfts-popup {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(24,0,24,0.49);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      animation: fadeIn 0.4s;
+      user-select: none;
+      pointer-events: auto;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .msfts-heart {
+      width: 120px; height: 120px;
+      margin-bottom: 18px;
+      animation: pulse 1.2s infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1);}
+      50% { transform: scale(1.2);}
+      100% { transform: scale(1);}
+    }
+    .msfts-love-text {
+      color: #f4b41a;
+      font-size: 2.2rem;
+      letter-spacing: 0.02em;
+      font-family: 'Press Start 2P', 'VT323', monospace;
+      text-shadow: 0 0 20px #e94560, 0 0 8px #fff8;
+      animation: neonGlow 2.2s infinite alternate;
+      text-align: center;
+      user-select: none;
+    }
+    @keyframes neonGlow {
+      0% { text-shadow: 0 0 20px #e94560, 0 0 8px #fff8;}
+      100% { text-shadow: 0 0 40px #f4b41a, 0 0 20px #e94560bb;}
+    }
+    .restart-btn {
+      margin-top: 30px;
+      padding: 12px 32px;
+      background: #e94560;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-family: 'Press Start 2P', 'VT323', monospace;
+      cursor: pointer;
+      box-shadow: 0 0 8px #f4b41a60, 0 0 2px #fff4;
+      transition: background 0.2s;
+      display: block;
+    }
+    .restart-btn:hover {
+      background: #f4b41a;
+      color: #e94560;
+    }
+    /* Music Button */
+    #musicBtn {
+      background: #232323;
+      color: #f4b41a;
+      border: 2px solid #e94560;
+      border-radius: 15px;
+      padding: 14px 24px 13px 24px;
+      font-size: 1.2rem;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 0 16px #e9456080, 0 0 2px #444;
+      transition: background 0.2s, color 0.2s;
+      opacity: 0.93;
+      z-index: 200;
+    }
+    #musicBtn:hover, #musicBtn:focus {
+      background: #e94560;
+      color: #fff;
+    }
+    /* Desktop: fixed bottom right */
+    #musicBtn.desktop {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      width: auto;
+      min-width: 0;
+      max-width: 220px;
+    }
+    /* Mobile: below board, centered, not fixed */
+    #musicBtn.mobile {
+      position: static;
+      display: block;
+      width: 94vw;
+      max-width: 420px;
+      margin: 18px auto 0 auto;
+      left: unset; right: unset; bottom: unset; top: unset;
+      border-radius: 15px;
+    }
+    @media (max-width: 600px) {
+      .tetris-board-wrapper {
+        padding: 5vw 2vw 7vw 2vw;
+        border-radius: 7vw;
+      }
+      .msfts-love-text {
+        font-size: 1.2rem;
+      }
+      .msfts-heart {
+        width: 70px; height: 70px;
+      }
+      .restart-btn {
+        font-size: 0.9rem;
+        padding: 10px 20px;
+      }
+      .msft-counter {
+        font-size: 0.9rem;
+      }
+      .play-big-btn {
+        font-size: 1.1rem;
+        padding: 16px 28px;
+      }
+      .canvas-overlay {
+        border-radius: 7vw;
+      }
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tetris-board-wrapper" style="position:relative;">
+      <canvas id="tetris" width="240" height="480"></canvas>
+      <div class="canvas-overlay" id="overlay">
+        <div style="text-align:center;">
+          <div style="font-size:2.7rem;color:#f4b41a;margin-bottom:12px;text-shadow:0 0 16px #e94560;">msfts.love</div>
+          <button class="play-big-btn" id="playGameBtn">▶️ Play</button>
+          <div style="color:#eee;margin-top:22px;font-size:1rem;opacity:0.9;letter-spacing:0.02em;">
+            Use ⬅️➡️⬆️⬇️ or on-screen buttons<br>
+            Music will start with the game!
+          </div>
+        </div>
+      </div>
+      <div class="msft-counter" id="msftCounter">msfts: 0</div>
+      <div class="controls">
+        <div>⬅️ ➡️ move &nbsp; ⬇️ drop &nbsp; ⬆️ rotate</div>
+        <div>or use the buttons below</div>
+        <div style="margin-top: 8px; display: flex; justify-content: center; gap: 12px;">
+          <button onclick="moveLeft()" style="background:none;color:#f4b41a;border:1px solid #e94560;border-radius:7px;font-size:1.2rem;padding:6px 12px;cursor:pointer;">◀️</button>
+          <button onclick="rotate()" style="background:none;color:#e94560;border:1px solid #f4b41a;border-radius:7px;font-size:1.2rem;padding:6px 12px;cursor:pointer;">⟳</button>
+          <button onclick="moveRight()" style="background:none;color:#f4b41a;border:1px solid #e94560;border-radius:7px;font-size:1.2rem;padding:6px 12px;cursor:pointer;">▶️</button>
+          <button onclick="moveDown()" style="background:none;color:#e94560;border:1px solid #f4b41a;border-radius:7px;font-size:1.2rem;padding:6px 12px;cursor:pointer;">⬇️</button>
+        </div>
+      </div>
+    </div>
+    <button id="musicBtn" onclick="toggleMusic()" style="display:none;">🎵 Play Music</button>
+  </div>
+  <div id="msftsPopup" class="msfts-popup" style="display:none;">
+    <div class="msfts-heart">
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <defs>
+          <radialGradient id="heartGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#f4b41a"/>
+            <stop offset="100%" stop-color="#e94560"/>
+          </radialGradient>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <path
+          d="M 50 85 L 20 55 Q 10 35 30 25 Q 48 12 50 30 Q 52 12 70 25 Q 90 35 80 55 Z"
+          fill="url(#heartGradient)"
+          filter="url(#glow)"
+        />
+      </svg>
+    </div>
+    <div class="msfts-love-text">msfts.love</div>
+    <button class="restart-btn" onclick="restartTetris()">Restart</button>
+  </div>
+  <script>
+    // --- 80s GAME MUSIC LOGIC ---
+    let musicCtx = null, seqTimer = null, musicPlaying = false;
+    let musicStep = 0, musicVoices = [];
+    // Tempo setup
+    const BPM = 120;
+    const SIXTEENTH = 60000 / BPM / 4; // ms per 16th note
+    // Chord progression (Cmin, Ab, Fmin, G)
+    const chords = [
+      [60, 63, 67], // Cmin: C E♭ G
+      [56, 60, 63], // Ab:  G# C E♭
+      [53, 57, 60], // Fmin: F A♭ C
+      [55, 59, 62], // G:   G B D
+    ];
+    // Melody (MIDI notes, 0 = rest)
+    const melody = [
+      72, 74, 76, 74, 72, 0, 67, 0,
+      69, 71, 72, 0, 67, 0, 0, 0,
+      72, 74, 76, 74, 77, 0, 74, 0,
+      72, 0, 0, 0, 0, 0, 0, 0
+    ];
+    // Bass (root notes per chord, 2 per bar)
+    const bass = [
+      48, 0, 48, 0, 48, 0, 48, 0,
+      44, 0, 44, 0, 44, 0, 44, 0,
+      41, 0, 41, 0, 41, 0, 41, 0,
+      43, 0, 43, 0, 43, 0, 43, 0
+    ];
+    function midiToFreq(m) {
+      return 440 * Math.pow(2, (m-69)/12);
+    }
+    function playOsc(freq, shape, vol, dur, pan=0) {
+      const now = musicCtx.currentTime;
+      let o = musicCtx.createOscillator();
+      let g = musicCtx.createGain();
+      let p = musicCtx.createStereoPanner ? musicCtx.createStereoPanner() : null;
+      o.type = shape;
+      o.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(vol, now);
+      if (p) {
+        p.pan.setValueAtTime(pan, now);
+        o.connect(g).connect(p).connect(musicCtx.destination);
+      } else {
+        o.connect(g).connect(musicCtx.destination);
+      }
+      o.start(now);
+      g.gain.linearRampToValueAtTime(0.0, now + dur * 0.95);
+      o.stop(now + dur);
+      o.onended = () => { g.disconnect(); if(p) p.disconnect(); o.disconnect();}
+      musicVoices.push(o);
+    }
+    function playSnare(vol=0.11) {
+      const now = musicCtx.currentTime;
+      let buffer = musicCtx.createBuffer(1, musicCtx.sampleRate * 0.10, musicCtx.sampleRate);
+      let data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++)
+        data[i] = (Math.random()*2-1) * Math.exp(-24*i/data.length);
+      let n = musicCtx.createBufferSource();
+      let g = musicCtx.createGain();
+      g.gain.setValueAtTime(vol, now);
+      n.buffer = buffer;
+      n.connect(g).connect(musicCtx.destination);
+      n.start(now);
+      g.gain.linearRampToValueAtTime(0, now + 0.10);
+      n.stop(now + 0.11);
+      n.onended = () => { g.disconnect(); n.disconnect(); }
+    }
+    function playKick(vol=0.13) {
+      const now = musicCtx.currentTime;
+      let o = musicCtx.createOscillator();
+      let g = musicCtx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(90, now);
+      o.frequency.linearRampToValueAtTime(30, now + 0.09);
+      g.gain.setValueAtTime(vol, now);
+      g.gain.linearRampToValueAtTime(0, now + 0.09);
+      o.connect(g).connect(musicCtx.destination);
+      o.start(now);
+      o.stop(now + 0.11);
+      o.onended = () => { g.disconnect(); o.disconnect(); }
+    }
+    function playMusic() {
+      if (musicPlaying) return;
+      if (!musicCtx) musicCtx = new (window.AudioContext || window.webkitAudioContext)();
+      musicPlaying = true;
+      document.getElementById('musicBtn').innerText = "⏹ Stop Music";
+      document.getElementById('musicBtn').style.display = "";
+      musicStep = 0;
+      nextStep();
+    }
+    function nextStep() {
+      if (!musicPlaying) return;
+      let chordIdx = Math.floor(musicStep / 16) % chords.length;
+      let chordNotes = chords[chordIdx];
+      if (musicStep % 4 === 0) {
+        let arpNote = chordNotes[(musicStep/4)%chordNotes.length];
+        playOsc(midiToFreq(arpNote), "square", 0.12, SIXTEENTH*3/1000, -0.2);
+      }
+      if (bass[musicStep % bass.length]) {
+        playOsc(midiToFreq(bass[musicStep % bass.length]), "triangle", 0.17, SIXTEENTH*3/1000, 0.2);
+      }
+      let mNote = melody[musicStep % melody.length];
+      if (mNote) {
+        playOsc(midiToFreq(mNote), "square", 0.13, SIXTEENTH*3/1000, 0.4);
+      }
+      if (musicStep % 4 === 0) playKick();
+      if (musicStep % 8 === 4) playSnare();
+      musicStep = (musicStep + 1) % 64; // 4 bars
+      seqTimer = setTimeout(nextStep, SIXTEENTH);
+    }
+    function stopMusic() {
+      musicPlaying = false;
+      if (seqTimer) clearTimeout(seqTimer);
+      document.getElementById('musicBtn').innerText = "🎵 Play Music";
+      if (musicVoices.length) {
+        musicVoices.forEach(o => { try { o.disconnect(); o.stop(); } catch(e){} });
+        musicVoices = [];
+      }
+    }
+    function toggleMusic() {
+      if (!musicPlaying) playMusic();
+      else stopMusic();
+    }
+    window.addEventListener('blur', stopMusic);
+
+    // --- TETRIS LOGIC ---
+    let gameRunning = false;
+    let gameOver = false;
+    let board = null;
+    let player = null;
+    let dropCounter = 0;
+    let dropInterval = 666;
+    let lastTime = 0;
+    let msftCells = [];
+    const canvas = document.getElementById('tetris');
+    const context = canvas.getContext('2d');
+    const scale = Math.floor(canvas.width / 10);
+    context.scale(scale, scale);
+    const colors = [
+      null,
+      '#e94560', // Z
+      '#f4b41a', // S
+      '#00fff0', // I
+      '#8dff00', // O
+      '#f000ff', // T
+      '#ff0080', // L
+      '#00e1ff', // J
+    ];
+    const tetrominos = {
+      'Z': [
+        [0,1,1],
+        [1,1,0],
+        [0,0,0],
+      ],
+      'S': [
+        [2,2,0],
+        [0,2,2],
+        [0,0,0],
+      ],
+      'I': [
+        [0,0,0,0],
+        [3,3,3,3],
+        [0,0,0,0],
+        [0,0,0,0],
+      ],
+      'O': [
+        [4,4],
+        [4,4],
+      ],
+      'T': [
+        [0,5,0],
+        [5,5,5],
+        [0,0,0],
+      ],
+      'L': [
+        [0,0,6],
+        [6,6,6],
+        [0,0,0],
+      ],
+      'J': [
+        [7,0,0],
+        [7,7,7],
+        [0,0,0],
+      ]
+    };
+    const tetrominoKeys = Object.keys(tetrominos);
+
+    function resetBoard() {
+      board = Array.from({length: 20}, () => Array(10).fill(0));
+      msftCells = [];
+    }
+    function randomTetromino() {
+      const key = tetrominoKeys[Math.floor(Math.random() * tetrominoKeys.length)];
+      return {
+        matrix: tetrominos[key].map(row => row.slice()),
+        color: key,
+      };
+    }
+    function playerReset() {
+      player = randomTetromino();
+      player.pos = {
+        x: Math.floor(board[0].length/2) - Math.floor(player.matrix[0].length/2),
+        y: 0
+      };
+      if (collide(board, player)) {
+        setTimeout(() => { showMsftsPopup(); playGameover(); }, 400);
+        gameOver = true;
+      }
+    }
+    function merge(board, player) {
+      player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            board[y + player.pos.y][x + player.pos.x] = value;
+          }
+        });
+      });
+    }
+    function collide(board, player) {
+      const [m, o] = [player.matrix, player.pos];
+      for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+          if (m[y][x]) {
+            if (
+              y + o.y < 0 ||
+              y + o.y >= board.length ||
+              x + o.x < 0 ||
+              x + o.x >= board[0].length ||
+              board[y + o.y][x + o.x]
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+    function rotateMatrix(matrix, dir) {
+      for (let y = 0; y < matrix.length; ++y) {
+        for (let x = 0; x < y; ++x) {
+          [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+        }
+      }
+      if (dir > 0) {
+        matrix.forEach(row => row.reverse());
+      } else {
+        matrix.reverse();
+      }
+    }
+    function tryRotate(dir) {
+      const prevMatrix = player.matrix.map(row => row.slice());
+      const prevX = player.pos.x;
+      rotateMatrix(player.matrix, dir);
+      let offset = 0;
+      let found = false;
+      for (let i = 0; i < 10; ++i) {
+        offset = i % 2 === 0 ? i/2 : -(i+1)/2;
+        player.pos.x = prevX + offset;
+        if (!collide(board, player) && inBounds(player)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        player.matrix = prevMatrix;
+        player.pos.x = prevX;
+      }
+    }
+    function inBounds(player) {
+      for (let y = 0; y < player.matrix.length; ++y) {
+        for (let x = 0; x < player.matrix[y].length; ++x) {
+          if (player.matrix[y][x]) {
+            let px = player.pos.x + x;
+            if (px < 0 || px >= 10) return false;
+          }
+        }
+      }
+      return true;
+    }
+    function playerDrop() {
+      player.pos.y++;
+      if (collide(board, player)) {
+        player.pos.y--;
+        merge(board, player);
+        let newMsfts = detectMsfts();
+        if (newMsfts > 0) playBlip();
+        playerReset();
+        sweepRows();
+        updateMsftCounter();
+      }
+      dropCounter = 0;
+    }
+    function sweepRows() {
+      outer: for (let y = board.length - 1; y >= 0; --y) {
+        for (let x = 0; x < board[y].length; ++x) {
+          if (!board[y][x]) continue outer;
+        }
+        const row = board.splice(y, 1)[0].fill(0);
+        board.unshift(row);
+        ++y;
+      }
+    }
+    function updateMsftCounter() {
+      document.getElementById('msftCounter').innerText = `msfts: ${msftCells.length}`;
+    }
+    function drawMatrix(matrix, offset) {
+      matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            context.globalAlpha = 1;
+            context.fillStyle = colors[value];
+            context.strokeStyle = "#fff6";
+            context.lineWidth = 0.07;
+            context.fillRect(x + offset.x, y + offset.y, 1, 1);
+            context.strokeRect(x + offset.x+0.05, y + offset.y+0.05, 0.9, 0.9);
+            context.globalAlpha = 0.10;
+            context.fillStyle = "#fff";
+            context.fillRect(x + offset.x, y + offset.y + 0.7, 1, 0.1);
+            context.globalAlpha = 1;
+          }
+        });
+      });
+    }
+    function drawBoard() {
+      context.fillStyle = "#171717";
+      context.fillRect(0, 0, canvas.width/scale, canvas.height/scale);
+      drawMatrix(board, {x:0, y:0});
+      if (player && !gameOver) {
+        drawMatrix(player.matrix, player.pos);
+      }
+      msftCells.forEach(({x, y}) => {
+        drawHeartCell(x, y);
+      });
+    }
+    function drawHeartCell(x, y) {
+      context.save();
+      context.translate(x + 0.5, y + 0.5);
+      context.scale(0.48, 0.48);
+      context.beginPath();
+      context.moveTo(0, 0.25);
+      context.bezierCurveTo(-0.25, -0.25, -0.5, -0.25, -0.5, 0.05);
+      context.bezierCurveTo(-0.5, 0.3, 0, 0.5, 0, 0.8);
+      context.bezierCurveTo(0, 0.5, 0.5, 0.3, 0.5, 0.05);
+      context.bezierCurveTo(0.5, -0.25, 0.25, -0.25, 0, 0.25);
+      let grad = context.createLinearGradient(-0.5,0,0.5,0.8);
+      grad.addColorStop(0, "#f4b41a");
+      grad.addColorStop(0.6, "#e94560");
+      grad.addColorStop(1, "#f4b41a");
+      context.fillStyle = grad;
+      context.shadowColor = "#e94560";
+      context.shadowBlur = 10;
+      context.globalAlpha = 0.97;
+      context.fill();
+      context.restore();
+    }
+    function update(time=0) {
+      if (!gameRunning) return;
+      if (gameOver) return;
+      const delta = time - lastTime;
+      lastTime = time;
+      dropCounter += delta;
+      if (dropCounter > dropInterval) {
+        playerDrop();
+      }
+      drawBoard();
+      requestAnimationFrame(update);
+    }
+    function moveLeft() {
+      if (!gameRunning || gameOver) return;
+      player.pos.x--;
+      if (collide(board, player) || !inBounds(player)) player.pos.x++;
+      playClick();
+      drawBoard();
+    }
+    function moveRight() {
+      if (!gameRunning || gameOver) return;
+      player.pos.x++;
+      if (collide(board, player) || !inBounds(player)) player.pos.x--;
+      playClick();
+      drawBoard();
+    }
+    function moveDown() {
+      if (!gameRunning || gameOver) return;
+      playerDrop();
+      playClick();
+      drawBoard();
+    }
+    function rotate() {
+      if (!gameRunning || gameOver) return;
+      tryRotate(1);
+      playClick();
+      drawBoard();
+    }
+    document.addEventListener('keydown', e => {
+      if (!gameRunning || gameOver) return;
+      if (e.key === 'ArrowLeft') moveLeft();
+      else if (e.key === 'ArrowRight') moveRight();
+      else if (e.key === 'ArrowDown') moveDown();
+      else if (e.key === 'ArrowUp') rotate();
+      else if (e.key === ' ') {
+        while (!collide(board, player)) {
+          player.pos.y++;
+        }
+        player.pos.y--;
+        merge(board, player);
+        let newMsfts = detectMsfts();
+        if (newMsfts > 0) playBlip();
+        playerReset();
+        sweepRows();
+        updateMsftCounter();
+        drawBoard();
+      }
+    });
+    let touchStartX = null, touchStartY = null;
+    canvas.addEventListener('touchstart', e => {
+      if (!gameRunning || gameOver) return;
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    });
+    canvas.addEventListener('touchend', e => {
+      if (!gameRunning || gameOver) return;
+      if (touchStartX !== null) {
+        const dx = (e.changedTouches[0].clientX - touchStartX);
+        const dy = (e.changedTouches[0].clientY - touchStartY);
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 30) moveRight();
+          else if (dx < -30) moveLeft();
+        } else {
+          if (dy > 30) moveDown();
+          else if (dy < -30) rotate();
+        }
+        touchStartX = null; touchStartY = null;
+      }
+    });
+    function detectMsfts() {
+      let reachable = Array.from({length: 20}, () => Array(10).fill(false));
+      function flood(x, y) {
+        if (x < 0 || x >= 10 || y < 0 || y >= 20) return;
+        if (board[y][x]) return;
+        if (reachable[y][x]) return;
+        reachable[y][x] = true;
+        flood(x-1, y);
+        flood(x+1, y);
+        flood(x, y-1);
+        flood(x, y+1);
+      }
+      for (let x = 0; x < 10; ++x) {
+        if (!board[0][x]) flood(x, 0);
+      }
+      let newlyAdded = 0;
+      for (let y = 0; y < 20; ++y) {
+        for (let x = 0; x < 10; ++x) {
+          if (!board[y][x] && !reachable[y][x]) {
+            for (let k = 0; k < y; ++k) {
+              if (board[k][x]) {
+                if (!msftCells.some(cell => cell.x === x && cell.y === y)) {
+                  msftCells.push({x, y});
+                  newlyAdded++;
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
+      return newlyAdded;
+    }
+    function showMsftsPopup() {
+      let popup = document.getElementById('msftsPopup');
+      popup.style.display = 'flex';
+    }
+    function restartTetris() {
+      let popup = document.getElementById('msftsPopup');
+      popup.style.display = 'none';
+      msftCells = [];
+      updateMsftCounter();
+      gameOver = false;
+      resetBoard();
+      playerReset();
+      drawBoard();
+      lastTime = performance.now();
+      requestAnimationFrame(update);
+    }
+    // --- SOUND EFFECTS ---
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    function playBlip() {
+      initAudio();
+      let o = audioCtx.createOscillator();
+      let g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.value = 740;
+      g.gain.value = 0.13;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      o.frequency.linearRampToValueAtTime(390, audioCtx.currentTime + 0.09);
+      g.gain.linearRampToValueAtTime(0.00, audioCtx.currentTime + 0.15);
+      o.stop(audioCtx.currentTime + 0.15);
+    }
+    function playClick() {
+      initAudio();
+      let o = audioCtx.createOscillator();
+      let g = audioCtx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = 250;
+      g.gain.value = 0.1;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      o.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.04);
+      g.gain.linearRampToValueAtTime(0.00, audioCtx.currentTime + 0.06);
+      o.stop(audioCtx.currentTime + 0.06);
+    }
+    function playGameover() {
+      initAudio();
+      let o = audioCtx.createOscillator();
+      let g = audioCtx.createGain();
+      o.type = 'sawtooth';
+      o.frequency.value = 520;
+      g.gain.value = 0.16;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      o.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.41);
+      g.gain.linearRampToValueAtTime(0.00, audioCtx.currentTime + 0.42);
+      o.stop(audioCtx.currentTime + 0.42);
+    }
+
+    // --- GAME INIT and PLAY BUTTON LOGIC ---
+    function startGameAndMusic() {
+      if (gameRunning) return;
+      document.getElementById('overlay').classList.add('hidden');
+      if (!musicPlaying) playMusic();
+      showMusicBtn();
+      resetBoard();
+      playerReset();
+      updateMsftCounter();
+      drawBoard();
+      gameOver = false;
+      gameRunning = true;
+      lastTime = performance.now();
+      requestAnimationFrame(update);
+    }
+    window.moveLeft = moveLeft;
+    window.moveRight = moveRight;
+    window.moveDown = moveDown;
+    window.rotate = rotate;
+    window.restartTetris = restartTetris;
+
+    // Attach Play button
+    document.getElementById('playGameBtn').addEventListener('click', startGameAndMusic);
+
+    // Music button layout logic
+    function showMusicBtn() {
+      var btn = document.getElementById('musicBtn');
+      btn.style.display = "";
+      // Responsive: .desktop or .mobile class
+      if (window.innerWidth <= 600) {
+        btn.classList.remove("desktop");
+        btn.classList.add("mobile");
+      } else {
+        btn.classList.remove("mobile");
+        btn.classList.add("desktop");
+      }
+    }
+    window.addEventListener('resize', function() {
+      var btn = document.getElementById('musicBtn');
+      if (btn.style.display !== "none") showMusicBtn();
+    });
+
+    // Draw empty board at page load
+    resetBoard();
+    drawBoard();
+    updateMsftCounter();
+  </script>
+</body>
+</html>
